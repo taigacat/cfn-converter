@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"cfn-converter/converter"
 	"flag"
 	"fmt"
@@ -14,6 +15,7 @@ var validate *validator.Validate
 type Command struct {
 	SourceFile string `validate:"required"`
 	OutputFile string `validate:"required"`
+	IndentSize int    `validate:"required"`
 	JoinToSub  bool
 }
 
@@ -24,12 +26,14 @@ func New() *Command {
 	var (
 		sourceFile string
 		outputFile string
+		indentSize int
 		joinToSub  bool
 	)
 
 	flag.StringVar(&sourceFile, "src", "", "CloudFormation template file")
 	flag.StringVar(&outputFile, "out", "", "Output file")
-	flag.BoolVar(&joinToSub, "join2sub", false, "Convert !Join to !Sub")
+	flag.BoolVar(&joinToSub, "join2sub", true, "Convert !Join to !Sub")
+	flag.IntVar(&indentSize, "indent", 2, "Indent size")
 	flag.Parse()
 
 	// Create a new command of the Command struct
@@ -39,6 +43,7 @@ func New() *Command {
 	command := &Command{
 		SourceFile: sourceFile,
 		OutputFile: outputFile,
+		IndentSize: indentSize,
 		JoinToSub:  joinToSub,
 	}
 
@@ -57,14 +62,14 @@ func (c Command) Run() {
 	println("Running command...")
 
 	// load yaml file
-	bytes, err := os.ReadFile(c.SourceFile)
+	source, err := os.ReadFile(c.SourceFile)
 	if err != nil {
 		panic("Error reading file")
 	}
 
 	node := &yaml.Node{}
 	// load yaml file
-	_ = yaml.Unmarshal(bytes, node)
+	_ = yaml.Unmarshal(source, node)
 
 	// Convert
 	var converters = make([]converter.Converter, 0)
@@ -72,21 +77,28 @@ func (c Command) Run() {
 		converters = append(converters, converter.JoinToSubConverter{})
 	}
 	for i, c := range converters {
-		node, err = c.Convert(node)
+		_, err = c.Convert(node)
 		if err != nil {
 			panic(fmt.Sprintf("Error converting [%d]", i))
 		}
 	}
 
 	// Print yaml
-	out, err := yaml.Marshal(node)
+	var out bytes.Buffer
+	encoder := yaml.NewEncoder(&out)
+	encoder.SetIndent(c.IndentSize)
+	err = encoder.Encode(node)
 	if err != nil {
 		panic(err)
 	}
+	err = encoder.Close()
+	if err != nil {
+		return
+	}
 
 	// Write to file
-	fmt.Println(string(out))
-	err = os.WriteFile(c.OutputFile, out, 0644)
+	fmt.Println(out.String())
+	err = os.WriteFile(c.OutputFile, out.Bytes(), 0644)
 	if err != nil {
 		panic(err)
 	}
