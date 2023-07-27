@@ -58,6 +58,9 @@ func (c Command) Run() {
 
 	// load yaml file
 	bytes, err := os.ReadFile(c.SourceFile)
+	if err != nil {
+		panic("Error reading file")
+	}
 
 	node := &yaml.Node{}
 	// load yaml file
