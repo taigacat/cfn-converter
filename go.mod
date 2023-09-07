@@ -3,7 +3,7 @@ module cfn-converter
 go 1.20
 
 require (
-	github.com/go-playground/validator/v10 v10.14.1
+	github.com/go-playground/validator/v10 v10.15.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 
