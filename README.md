@@ -1,5 +1,7 @@
 # cfn-converter
 
+Archived! Use AWS official tool -> [cfn-flip](https://github.com/awslabs/aws-cfn-template-flip)
+
 Tiny convert tool for AWS CloudFormation template.
 
 Support these functions:
